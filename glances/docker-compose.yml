@@ -1,0 +1,19 @@
+name: glances
+
+# Glances 容器：为本项目提供 CPU 温度（AMD k10temp / Tctl）等传感器数据。
+# 关键点：
+#   pid: host          -> 共享宿主机 PID 空间，否则 psutil 读不到宿主机温度传感器（返回空）
+#   restart: unless-stopped -> 随 DSM 重启自动拉起，保证 ESP32 数据源长期可用
+#   GLANCES_OPT=-w     -> Web/REST 服务模式，暴露 /api/4/ 接口
+#   ports 61208        -> REST API；61209 为可选 XML-RPC
+# 安全：默认绑定 0.0.0.0、无认证，仅限内网使用；切勿在路由器上把 61208 端口转发到公网。
+services:
+  glances:
+    image: nicolargo/glances:latest
+    container_name: glances
+    restart: unless-stopped
+    pid: host
+    ports:
+      - "61208-61209:61208-61209"
+    environment:
+      - GLANCES_OPT=-w

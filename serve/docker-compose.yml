@@ -1,0 +1,19 @@
+name: nas-temps-web
+
+# Tiny static-file HTTP server for the merged temperature JSON.
+# Serves /volume1/docker/nas_monitoring/web/ (where collect_temps.py writes temps.json)
+# on LAN port 8787. restart: unless-stopped -> auto-starts on DSM reboot.
+#
+# ESP32 pulls:  http://192.168.1.100:8787/temps.json
+#
+# Security: internal LAN only; do NOT port-forward 8787 to the internet
+# (the endpoint is unauthenticated, same posture as Glances).
+services:
+  web:
+    image: nginx:alpine
+    container_name: nas-temps-web
+    restart: unless-stopped
+    ports:
+      - "8787:80"
+    volumes:
+      - /volume1/docker/nas_monitoring/web:/usr/share/nginx/html:ro

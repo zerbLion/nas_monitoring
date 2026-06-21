@@ -1,0 +1,55 @@
+<svg width="100%" viewBox="0 0 680 440" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>M5Dial mockup showing NAS temperatures with a zoned gauge</title>
+<desc>A round-screen M5Dial showing CPU 53C (Tctl) on a ring gauge with green, amber and red zones, beside a live readout panel listing CPU, system and three disk temperatures.</desc>
+<rect x="0" y="0" width="680" height="440" rx="16" fill="#0d1117" stroke="#21262d" stroke-width="1"/>
+<ellipse cx="200" cy="356" rx="118" ry="12" fill="#000000" opacity="0.30"/>
+
+<rect x="62" y="70" width="276" height="276" rx="52" fill="#1b2330" stroke="#2c3644" stroke-width="1"/>
+<rect x="331" y="190" width="10" height="40" rx="3" fill="#2c3644"/>
+<circle cx="200" cy="210" r="124" fill="none" stroke="#232e3c" stroke-width="12"/>
+<circle cx="200" cy="86" r="3.5" fill="#4a5a6c"/>
+<circle cx="200" cy="210" r="106" fill="#05080d" stroke="#0d141d" stroke-width="1"/>
+
+<path d="M 200 118 A 92 92 0 1 1 145.9 284.4" fill="none" stroke="#2dd4a7" stroke-width="9" opacity="0.28"/>
+<path d="M 145.9 284.4 A 92 92 0 0 1 125.6 155.9" fill="none" stroke="#e0a13a" stroke-width="9" opacity="0.32"/>
+<path d="M 125.6 155.9 A 92 92 0 0 1 200 118" fill="none" stroke="#d9534f" stroke-width="9" opacity="0.34"/>
+<path d="M 200 118 A 92 92 0 0 1 261.8 278.2" fill="none" stroke="#2dd4a7" stroke-width="9" stroke-linecap="round"/>
+<circle cx="261.8" cy="278.2" r="4" fill="#eafdf7"/>
+
+<text x="200" y="156" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#50657c">DS1525+</text>
+<text x="200" y="226" text-anchor="middle" font-family="sans-serif" font-size="56" font-weight="600" fill="#eafdf7">53°</text>
+<text x="200" y="250" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5fa088">CPU · Tctl</text>
+
+<circle cx="398" cy="113" r="4" fill="#2dd4a7"/>
+<text x="410" y="117" font-family="sans-serif" font-size="13" fill="#8ca2b6">Live readout</text>
+<text x="410" y="136" font-family="sans-serif" font-size="11" fill="#55687c">:8787/temps.json</text>
+
+<text x="392" y="180" font-family="sans-serif" font-size="14" fill="#c7d4e0">CPU</text>
+<text x="430" y="180" font-family="sans-serif" font-size="11" fill="#5fa088">Tctl</text>
+<rect x="470" y="167" width="120" height="7" rx="3.5" fill="#182230"/>
+<rect x="470" y="167" width="55" height="7" rx="3.5" fill="#2dd4a7"/>
+<text x="640" y="180" text-anchor="end" font-family="sans-serif" font-size="14" font-weight="500" fill="#eef5fc">53°</text>
+
+<text x="392" y="220" font-family="sans-serif" font-size="14" fill="#c7d4e0">System</text>
+<rect x="470" y="207" width="120" height="7" rx="3.5" fill="#182230"/>
+<rect x="470" y="207" width="55" height="7" rx="3.5" fill="#2dd4a7"/>
+<text x="640" y="220" text-anchor="end" font-family="sans-serif" font-size="14" font-weight="500" fill="#eef5fc">53°</text>
+
+<text x="392" y="260" font-family="sans-serif" font-size="14" fill="#c7d4e0">Disk 1</text>
+<rect x="470" y="247" width="120" height="7" rx="3.5" fill="#182230"/>
+<rect x="470" y="247" width="22" height="7" rx="3.5" fill="#2dd4a7"/>
+<text x="640" y="260" text-anchor="end" font-family="sans-serif" font-size="14" font-weight="500" fill="#eef5fc">39°</text>
+
+<text x="392" y="300" font-family="sans-serif" font-size="14" fill="#c7d4e0">Disk 2</text>
+<rect x="470" y="287" width="120" height="7" rx="3.5" fill="#182230"/>
+<rect x="470" y="287" width="26" height="7" rx="3.5" fill="#2dd4a7"/>
+<text x="640" y="300" text-anchor="end" font-family="sans-serif" font-size="14" font-weight="500" fill="#eef5fc">41°</text>
+
+<text x="392" y="340" font-family="sans-serif" font-size="14" fill="#c7d4e0">Disk 3</text>
+<rect x="470" y="327" width="120" height="7" rx="3.5" fill="#182230"/>
+<rect x="470" y="327" width="24" height="7" rx="3.5" fill="#2dd4a7"/>
+<text x="640" y="340" text-anchor="end" font-family="sans-serif" font-size="14" font-weight="500" fill="#eef5fc">40°</text>
+
+<text x="222" y="392" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#5a6b7c">green &lt; 66°　amber 66–81°　red &gt; 81°</text>
+<text x="340" y="418" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6b7d90">nas_monitoring — live CPU, system &amp; disk temps on an M5Dial</text>
+</svg>
