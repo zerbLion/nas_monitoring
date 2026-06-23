@@ -90,6 +90,21 @@ python3 scripts/verify.py
 
 Then point any browser (or your ESP32) at `http://<your-nas-ip>:8787/temps.json`.
 
+### 🖥 Live dashboard
+
+A self‑contained `web/index.html` ships in the same nginx root, so opening the server's
+**base URL** renders the dial above with **live** numbers (no build step, no extra service):
+
+```
+http://<your-nas-ip>:8787/          ← live dial (CPU, system, every disk)
+http://<your-nas-ip>:8787/temps.json ← raw JSON (what the ESP32 pulls)
+```
+
+It refreshes every 5 s, colours each reading green/amber/red by zone, shows a stale‑feed
+indicator from `ts`, and **tap the dial to cycle** the big readout through CPU → system →
+each disk (wired this way on purpose for an M5Dial knob later). The NAS model in the centre
+is read from the JSON's `model` field; override with `?model=...` if you serve it elsewhere.
+
 ## 🔌 The JSON contract + ESP32
 
 The payload is intentionally flat and tiny so an MCU can parse it cheaply:

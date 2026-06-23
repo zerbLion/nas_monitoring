@@ -12,7 +12,7 @@
 # (e.g. launched by cron as root), otherwise via "sudo -n" (scoped NOPASSWD).
 #
 # Output shape (integers in Celsius; null if a source is unavailable):
-#   {"ts":1718960000,"unit":"C","cpu":54,"cpu_label":"Tctl","system":53,
+#   {"ts":1718960000,"unit":"C","model":"DS1525+","cpu":54,"cpu_label":"Tctl","system":53,
 #    "disks":[{"name":"sata1","temp":39},{"name":"sata2","temp":41},{"name":"sata3","temp":40}]}
 import os, sys, re, json, time, subprocess, urllib.request
 
@@ -42,17 +42,19 @@ def cpu_temp():
     return None, None
 
 
-def system_temp():
+def system_info():
+    """One synowebapi call -> (system_temp:int|None, model:str|None)."""
     try:
         p = subprocess.run(
             _priv([SYNOWEBAPI, "--exec", "api=SYNO.Core.System", "method=info", "version=1"]),
             capture_output=True, text=True, timeout=8)
-        m = re.search(r'"sys_temp"\s*:\s*([0-9]+)', p.stdout)
-        if m:
-            return int(m.group(1))
+        temp = re.search(r'"sys_temp"\s*:\s*([0-9]+)', p.stdout)
+        model = re.search(r'"model"\s*:\s*"([^"]+)"', p.stdout)
+        return (int(temp.group(1)) if temp else None,
+                model.group(1) if model else None)
     except Exception as e:
-        print(f"system_temp error: {e}", file=sys.stderr)
-    return None
+        print(f"system_info error: {e}", file=sys.stderr)
+    return None, None
 
 
 def disk_temp(dev):
@@ -72,12 +74,14 @@ def disk_temp(dev):
 
 def collect():
     cpu, lab = cpu_temp()
+    sys_temp, model = system_info()
     return {
         "ts": int(time.time()),
         "unit": "C",
+        "model": model,
         "cpu": cpu,
         "cpu_label": lab,
-        "system": system_temp(),
+        "system": sys_temp,
         "disks": [{"name": d, "temp": disk_temp(d)} for d in DISKS],
     }
 

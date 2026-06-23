@@ -39,5 +39,24 @@ ssh nas 'kill -0 $(cat /volume1/docker/nas_monitoring/daemon.pid) && echo ALIVE'
 - 改 sudoers / 容器 / 开机任务属系统改动，动手前与用户确认。
 
 ## 文件地图
-- NAS：`/volume1/docker/glances/`（Glances）、`/volume1/docker/nas_monitoring/`（scripts + `web/temps.json`）。
-- 仓库：`glances/`、`serve/`（compose）、`scripts/`（collect / daemon / verify 等）、`*.md`（文档）。
+- NAS：`/volume1/docker/glances/`（Glances）、`/volume1/docker/nas_monitoring/`（scripts + `web/`）。
+- 仓库：`glances/`、`serve/`（compose）、`scripts/`（collect / daemon / verify 等）、`web/`（`index.html` 实时表盘）、`*.md`（文档）。
+
+## 实时表盘 `web/index.html`（2026-06 新增）
+- 自包含单文件，放在 nginx 根目录 → 打开 `http://192.168.1.100:8787/`（或 Tailscale `100.105.65.9:8787/`）即渲染表盘。
+- 同源 fetch `temps.json`，每 5s 刷新；按温度分区上色（绿 <66 / 琥珀 66–81 / 红 >81，与 `SCALE_MAX=95` 对应）；用 `ts` 判定过期（>90s 显红点）。
+- **点表盘**在 CPU→System→各硬盘间循环切换大显示（为日后 M5Dial 旋钮预留）。
+- 中央型号读 JSON 的 `model` 字段；`collect_temps.py` 已在 `system_info()` 里从 synowebapi 一并解析出 `model`。可用 `?model=...` 覆盖。
+
+## 部署实时表盘（待执行 — 需在配好 `ssh nas` 的本机上跑）
+> 背景：本次改动是在另一台无 SSH 密钥的机器上完成的，故部署留给本机。
+```bash
+# 1) 推页面 + 改过的采集脚本
+scp web/index.html        nas:/volume1/docker/nas_monitoring/web/index.html
+scp scripts/collect_temps.py nas:/volume1/docker/nas_monitoring/scripts/collect_temps.py
+# 2) 立刻重采一次，写出带 model 的新 JSON（守护进程 30s 内也会自刷）
+ssh nas 'python3 /volume1/docker/nas_monitoring/scripts/collect_temps.py > /volume1/docker/nas_monitoring/web/temps.json'
+# 3) 验证：浏览器打开 http://192.168.1.100:8787/ 应看到表盘 + 全部温度；temps.json 里应含 "model"
+ssh nas 'python3 /volume1/docker/nas_monitoring/scripts/verify.py'   # 交叉核对仍应 PASS
+```
+nginx 只读挂载，无需重启容器，刷新浏览器即生效。

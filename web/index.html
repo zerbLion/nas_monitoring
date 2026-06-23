@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>nas_monitoring — live temps</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#1b2330; --panel-line:#2c3644;
+    --ring-track:#232e3c; --dial-face:#05080d; --dial-face-line:#0d141d;
+    --green:#2dd4a7; --amber:#e0a13a; --red:#d9534f;
+    --txt:#eef5fc; --txt-dim:#8ca2b6; --txt-faint:#55687c; --accent-dim:#5fa088;
+    --bar-bg:#182230;
+    /* zone thresholds (°C) — tweak per sensor below */
+    --green-max:66; --amber-max:81;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    display:flex; align-items:center; justify-content:center;
+    min-height:100vh; padding:16px;
+  }
+  .card{
+    width:100%; max-width:680px;
+    background:var(--bg); border:1px solid #21262d; border-radius:16px;
+    padding:28px; display:flex; gap:8px; align-items:center;
+  }
+  /* ---- Dial ---- */
+  .dial-wrap{flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:14px}
+  .bezel{
+    width:276px; height:276px; border-radius:52px;
+    background:var(--panel); border:1px solid var(--panel-line);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; user-select:none; position:relative;
+  }
+  .bezel::after{ /* side button */
+    content:""; position:absolute; right:-5px; top:120px;
+    width:10px; height:40px; border-radius:3px; background:var(--panel-line);
+  }
+  svg.gauge{width:248px; height:248px; display:block}
+  .gtrack{fill:none; stroke:var(--ring-track); stroke-width:12}
+  .gzone{fill:none; stroke-width:9}
+  .gprog{fill:none; stroke-width:9; stroke-linecap:round;
+         transition:stroke-dasharray .5s ease, stroke .5s ease}
+  .gmodel{font-size:12px; fill:var(--txt-faint)}
+  .gtemp{font-size:56px; font-weight:600; fill:var(--txt)}
+  .glabel{font-size:12px; fill:var(--accent-dim)}
+  .legend{font-size:11px; color:#5a6b7c; text-align:center}
+  /* ---- Readout panel ---- */
+  .panel{flex:1 1 auto; min-width:0; padding-left:18px}
+  .phead{display:flex; align-items:center; gap:8px; margin-bottom:2px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);
+       box-shadow:0 0 8px var(--green)}
+  .dot.stale{background:var(--red); box-shadow:0 0 8px var(--red)}
+  .phead .t{font-size:13px; color:var(--txt-dim)}
+  .psub{font-size:11px; color:var(--txt-faint); margin:0 0 18px 16px}
+  .row{margin-bottom:18px; cursor:pointer}
+  .row .line{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:7px}
+  .row .name{font-size:14px; color:#c7d4e0}
+  .row .name .tag{font-size:11px; color:var(--accent-dim); margin-left:6px}
+  .row .val{font-size:14px; font-weight:500; color:var(--txt)}
+  .bar{height:7px; border-radius:3.5px; background:var(--bar-bg); overflow:hidden}
+  .bar > i{display:block; height:100%; border-radius:3.5px; background:var(--green);
+           width:0; transition:width .5s ease, background .5s ease}
+  .row.sel .name{color:var(--txt)}
+  .row.sel{outline:1px solid #2c3644; outline-offset:6px; border-radius:6px}
+  .foot{margin-top:6px; font-size:12px; color:#6b7d90; text-align:center}
+  @media (max-width:560px){
+    .card{flex-direction:column}
+    .panel{padding-left:0; width:100%}
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="dial-wrap">
+      <div class="bezel" id="bezel" title="tap to cycle">
+        <svg class="gauge" viewBox="0 0 248 248" id="gauge">
+          <circle class="gtrack" cx="124" cy="124" r="92"/>
+          <!-- zone arcs (drawn as background hints) -->
+          <path class="gzone" id="zoneGreen" opacity="0.28"/>
+          <path class="gzone" id="zoneAmber" opacity="0.32"/>
+          <path class="gzone" id="zoneRed"   opacity="0.34"/>
+          <circle cx="124" cy="124" r="86" fill="var(--dial-face)" stroke="var(--dial-face-line)" stroke-width="1"/>
+          <!-- progress -->
+          <path class="gprog" id="prog"/>
+          <circle id="progEnd" r="4" fill="#eafdf7" style="display:none"/>
+          <text class="gmodel" id="gModel" x="124" y="92"  text-anchor="middle">DS1525+</text>
+          <text class="gtemp"  id="gTemp"  x="124" y="138" text-anchor="middle">--°</text>
+          <text class="glabel" id="gLabel" x="124" y="162" text-anchor="middle">CPU</text>
+        </svg>
+      </div>
+      <div class="legend">green &lt; 66°&nbsp;&nbsp;amber 66–81°&nbsp;&nbsp;red &gt; 81°</div>
+    </div>
+
+    <div class="panel">
+      <div class="phead"><span class="dot" id="dot"></span><span class="t">Live readout</span></div>
+      <div class="psub" id="src">:8787/temps.json</div>
+      <div id="rows"></div>
+      <div class="foot">nas_monitoring — live CPU, system &amp; disk temps</div>
+    </div>
+  </div>
+
+<script>
+// model name: temps.json "model" wins, then ?model= query param, then default
+const DEFAULT_MODEL = new URLSearchParams(location.search).get('model') || "NAS";
+const GREEN_MAX = 66, AMBER_MAX = 81;   // °C zone thresholds
+const SCALE_MAX = 95;                    // gauge full-scale (°C)
+const REFRESH_MS = 5000;
+const STALE_S = 90;                      // ts older than this -> stale dot
+
+// --- gauge geometry: 270° arc, gap at bottom (start 135°, sweep clockwise) ---
+const CX=124, CY=124, R=92, START=135, SWEEP=270;
+function polar(frac){ // frac 0..1 along the arc -> [x,y]
+  const a = (START + frac*SWEEP) * Math.PI/180;
+  return [CX + R*Math.cos(a), CY + R*Math.sin(a)];
+}
+function arc(f0,f1){
+  const [x0,y0]=polar(f0), [x1,y1]=polar(f1);
+  const large = (f1-f0)*SWEEP > 180 ? 1 : 0;
+  return `M ${x0.toFixed(1)} ${y0.toFixed(1)} A ${R} ${R} 0 ${large} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+}
+function colorFor(t){ return t > AMBER_MAX ? 'var(--red)' : t > GREEN_MAX ? 'var(--amber)' : 'var(--green)'; }
+function barColor(t){ return t > AMBER_MAX ? 'var(--red)' : t > GREEN_MAX ? 'var(--amber)' : 'var(--green)'; }
+
+// draw static zone arcs once
+(function zones(){
+  const g=GREEN_MAX/SCALE_MAX, a=AMBER_MAX/SCALE_MAX;
+  document.getElementById('zoneGreen').setAttribute('d', arc(0, g));
+  document.getElementById('zoneGreen').setAttribute('stroke','var(--green)');
+  document.getElementById('zoneAmber').setAttribute('d', arc(g, a));
+  document.getElementById('zoneAmber').setAttribute('stroke','var(--amber)');
+  document.getElementById('zoneRed').setAttribute('d', arc(a, 1));
+  document.getElementById('zoneRed').setAttribute('stroke','var(--red)');
+  document.getElementById('gModel').textContent = DEFAULT_MODEL;
+})();
+
+let metrics = [];   // [{key,name,tag,temp}]
+let sel = 0;
+
+function renderGauge(){
+  if(!metrics.length) return;
+  const m = metrics[sel % metrics.length];
+  const frac = Math.max(0, Math.min(1, m.temp / SCALE_MAX));
+  const prog = document.getElementById('prog');
+  if(frac <= 0.001){ prog.setAttribute('d',''); }
+  else { prog.setAttribute('d', arc(0, frac)); }
+  prog.setAttribute('stroke', colorFor(m.temp));
+  const [ex,ey]=polar(frac);
+  const end=document.getElementById('progEnd');
+  end.setAttribute('cx',ex.toFixed(1)); end.setAttribute('cy',ey.toFixed(1));
+  end.style.display = frac>0.01 ? '' : 'none';
+  document.getElementById('gTemp').textContent = (m.temp==null?'--':m.temp)+'°';
+  document.getElementById('gLabel').textContent = m.tag ? (m.name+' · '+m.tag) : m.name;
+}
+
+function renderRows(){
+  const host=document.getElementById('rows');
+  host.innerHTML='';
+  metrics.forEach((m,i)=>{
+    const pct = Math.max(0,Math.min(100, m.temp/SCALE_MAX*100));
+    const row=document.createElement('div');
+    row.className='row'+(i===sel?' sel':'');
+    row.innerHTML=
+      `<div class="line"><span class="name">${m.name}`+
+      `${m.tag?`<span class="tag">${m.tag}</span>`:''}</span>`+
+      `<span class="val">${m.temp==null?'--':m.temp}°</span></div>`+
+      `<div class="bar"><i style="width:${pct}%;background:${barColor(m.temp)}"></i></div>`;
+    row.onclick=()=>{ sel=i; renderGauge(); renderRows(); };
+    host.appendChild(row);
+  });
+}
+
+async function tick(){
+  try{
+    const r = await fetch('temps.json', {cache:'no-store'});
+    const d = await r.json();
+    if(d.model) document.getElementById('gModel').textContent = d.model;
+    metrics = [
+      {key:'cpu', name:'CPU', tag:d.cpu_label||'', temp:d.cpu},
+      {key:'system', name:'System', tag:'', temp:d.system},
+      ...(d.disks||[]).map((x,i)=>({key:'d'+i, name:'Disk '+(i+1), tag:x.name, temp:x.temp})),
+    ].filter(m=>m.temp!=null);
+    if(sel >= metrics.length) sel=0;
+    const stale = d.ts && (Date.now()/1000 - d.ts) > STALE_S;
+    document.getElementById('dot').className = 'dot'+(stale?' stale':'');
+    document.getElementById('src').textContent =
+      ':8787/temps.json' + (d.ts ? '  ·  '+timeAgo(d.ts) : '');
+    renderGauge(); renderRows();
+  }catch(e){
+    document.getElementById('dot').className='dot stale';
+    document.getElementById('src').textContent='temps.json unreachable';
+  }
+}
+function timeAgo(ts){
+  const s=Math.max(0,Math.round(Date.now()/1000-ts));
+  return s<60? s+'s ago' : Math.round(s/60)+'m ago';
+}
+
+document.getElementById('bezel').onclick=()=>{
+  if(!metrics.length) return;
+  sel=(sel+1)%metrics.length; renderGauge(); renderRows();
+};
+
+tick();
+setInterval(tick, REFRESH_MS);
+</script>
+</body>
+</html>
