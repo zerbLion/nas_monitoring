@@ -2,6 +2,8 @@
 
 面向在本仓库工作的 AI 代理（Claude Code 等）。人类向导见 [README.md](README.md)；已完成版本见 [CHANGELOG.md](CHANGELOG.md)；待办见 [TODO.md](TODO.md)。
 
+> **上层项目（deskstage / dial 设备）的 AI 请先读 [INTEGRATION.md](INTEGRATION.md)** —— 那里是「怎么把本模块当数据源消费」的稳定契约；本文是仓库内部运维细节。
+
 ## 这是什么
 群晖 NAS 温度监控：把 **CPU / 系统 / 3 块硬盘** 温度合并成一份 HTTP JSON，供 ESP32（M5Dial）拉取显示。
 **线上状态**：已跑通并交叉验证通过。对外端点 `http://192.168.1.100:8787/temps.json`。
