@@ -3,209 +3,359 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>nas_monitoring — live temps</title>
+<title>nas_monitoring — live</title>
 <style>
   :root{
-    --bg:#0d1117; --panel:#1b2330; --panel-line:#2c3644;
-    --ring-track:#232e3c; --dial-face:#05080d; --dial-face-line:#0d141d;
-    --green:#2dd4a7; --amber:#e0a13a; --red:#d9534f;
-    --txt:#eef5fc; --txt-dim:#8ca2b6; --txt-faint:#55687c; --accent-dim:#5fa088;
-    --bar-bg:#182230;
-    /* zone thresholds (°C) — tweak per sensor below */
-    --green-max:66; --amber-max:81;
+    --bg:#0b0f16; --bg2:#0d1117;
+    --card:#141c28; --card2:#111822; --line:#222d3c; --line2:#2c3a4c;
+    --green:#2dd4a7; --amber:#e0a13a; --red:#e0524e;
+    --txt:#eef5fc; --dim:#8ca2b6; --faint:#5b6c7e;
+    --track:#1c2735;
+    --r:18px;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%}
+  html,body{margin:0}
   body{
-    background:var(--bg); color:var(--txt);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-    display:flex; align-items:center; justify-content:center;
-    min-height:100vh; padding:16px;
+    background:
+      radial-gradient(1100px 520px at 18% -8%, #13233166 0%, transparent 60%),
+      radial-gradient(900px 480px at 100% 0%, #11202c55 0%, transparent 55%),
+      var(--bg);
+    color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    min-height:100vh; padding:22px;
   }
-  .card{
-    width:100%; max-width:680px;
-    background:var(--bg); border:1px solid #21262d; border-radius:16px;
-    padding:28px; display:flex; gap:8px; align-items:center;
-  }
-  /* ---- Dial ---- */
-  .dial-wrap{flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:14px}
-  .bezel{
-    width:276px; height:276px; border-radius:52px;
-    background:var(--panel); border:1px solid var(--panel-line);
-    display:flex; align-items:center; justify-content:center;
-    cursor:pointer; user-select:none; position:relative;
-  }
-  .bezel::after{ /* side button */
-    content:""; position:absolute; right:-5px; top:120px;
-    width:10px; height:40px; border-radius:3px; background:var(--panel-line);
-  }
-  svg.gauge{width:248px; height:248px; display:block}
-  .gtrack{fill:none; stroke:var(--ring-track); stroke-width:12}
-  .gzone{fill:none; stroke-width:9}
-  .gprog{fill:none; stroke-width:9; stroke-linecap:round;
-         transition:stroke-dasharray .5s ease, stroke .5s ease}
-  .gmodel{font-size:12px; fill:var(--txt-faint)}
-  .gtemp{font-size:56px; font-weight:600; fill:var(--txt)}
-  .glabel{font-size:12px; fill:var(--accent-dim)}
-  .legend{font-size:11px; color:#5a6b7c; text-align:center}
-  /* ---- Readout panel ---- */
-  .panel{flex:1 1 auto; min-width:0; padding-left:18px}
-  .phead{display:flex; align-items:center; gap:8px; margin-bottom:2px}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);
-       box-shadow:0 0 8px var(--green)}
-  .dot.stale{background:var(--red); box-shadow:0 0 8px var(--red)}
-  .phead .t{font-size:13px; color:var(--txt-dim)}
-  .psub{font-size:11px; color:var(--txt-faint); margin:0 0 18px 16px}
-  .row{margin-bottom:18px; cursor:pointer}
-  .row .line{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:7px}
-  .row .name{font-size:14px; color:#c7d4e0}
-  .row .name .tag{font-size:11px; color:var(--accent-dim); margin-left:6px}
-  .row .val{font-size:14px; font-weight:500; color:var(--txt)}
-  .bar{height:7px; border-radius:3.5px; background:var(--bar-bg); overflow:hidden}
-  .bar > i{display:block; height:100%; border-radius:3.5px; background:var(--green);
-           width:0; transition:width .5s ease, background .5s ease}
-  .row.sel .name{color:var(--txt)}
-  .row.sel{outline:1px solid #2c3644; outline-offset:6px; border-radius:6px}
-  .foot{margin-top:6px; font-size:12px; color:#6b7d90; text-align:center}
+  .shell{max-width:920px; margin:0 auto}
+
+  /* ---------- header ---------- */
+  header{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:20px}
+  .brand{display:flex; align-items:baseline; gap:10px}
+  .brand h1{font-size:22px; font-weight:650; margin:0; letter-spacing:.2px}
+  .brand .sub{font-size:12px; color:var(--faint)}
+  .chips{display:flex; gap:8px; margin-left:auto; flex-wrap:wrap}
+  .chip{display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--dim);
+        background:var(--card2); border:1px solid var(--line); border-radius:999px; padding:6px 12px}
+  .chip b{color:var(--txt); font-weight:600}
+  .pulse{width:8px;height:8px;border-radius:50%;background:var(--green);
+         box-shadow:0 0 0 0 #2dd4a766; animation:pulse 2s infinite}
+  .pulse.warn{background:var(--amber); box-shadow:0 0 0 0 #e0a13a66}
+  .pulse.crit{background:var(--red); box-shadow:0 0 0 0 #e0524e66}
+  .pulse.stale{background:var(--faint); animation:none}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 #2dd4a766}70%{box-shadow:0 0 0 7px #2dd4a700}100%{box-shadow:0 0 0 0 #2dd4a700}}
+  .demo-badge{font-size:10.5px; letter-spacing:.6px; color:#0b0f16; background:var(--amber);
+              border-radius:5px; padding:2px 7px; font-weight:700; display:none}
+
+  /* ---------- section ---------- */
+  .sect{margin:26px 0 12px}
+  .sect .lbl{font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--faint);
+             display:flex; align-items:center; gap:10px}
+  .sect .lbl::after{content:""; flex:1; height:1px; background:linear-gradient(90deg,var(--line),transparent)}
+
+  /* ---------- hero: dial + temps ---------- */
+  .hero{display:flex; gap:22px; align-items:stretch; flex-wrap:wrap}
+  .dialcard{flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:10px;
+            background:linear-gradient(180deg,var(--card),var(--card2));
+            border:1px solid var(--line); border-radius:var(--r); padding:22px}
+  .bezel{width:230px;height:230px;border-radius:44px;background:#16202c;border:1px solid var(--line2);
+         display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;position:relative}
+  .bezel::after{content:"";position:absolute;right:-5px;top:100px;width:9px;height:34px;border-radius:3px;background:var(--line2)}
+  svg.gauge{width:206px;height:206px;display:block}
+  .gtrack{fill:none;stroke:var(--track);stroke-width:11}
+  .gzone{fill:none;stroke-width:8}
+  .gprog{fill:none;stroke-width:8;stroke-linecap:round;transition:stroke-dasharray .5s ease,stroke .5s ease}
+  .gmodel{font-size:11px;fill:var(--faint)}
+  .gtemp{font-size:48px;font-weight:650;fill:var(--txt)}
+  .glabel{font-size:11px;fill:var(--green)}
+  .legend{font-size:10.5px;color:var(--faint)}
+  .temps{flex:1 1 270px;min-width:240px;background:linear-gradient(180deg,var(--card),var(--card2));
+         border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;display:flex;flex-direction:column;justify-content:center}
+  .trow{margin:11px 0;cursor:pointer;border-radius:8px;padding:4px 6px;transition:background .15s}
+  .trow:hover{background:#ffffff08}
+  .trow.sel{background:#2dd4a712;outline:1px solid #2dd4a733}
+  .trow .ln{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .trow .nm{font-size:13.5px;color:#cdd9e6}
+  .trow .nm .tag{font-size:10.5px;color:var(--green);margin-left:6px}
+  .trow .vv{font-size:13.5px;font-weight:600}
+  .bar{height:6px;border-radius:3px;background:var(--track);overflow:hidden}
+  .bar>i{display:block;height:100%;border-radius:3px;width:0;transition:width .5s ease,background .5s ease}
+
+  /* ---------- card grid ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+  .card{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);
+        border-radius:var(--r);padding:16px 18px;transition:transform .15s,border-color .15s}
+  .card:hover{transform:translateY(-2px);border-color:var(--line2)}
+  .card .ct{font-size:12px;color:var(--dim);display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .card .ct .u{font-size:10.5px;color:var(--faint)}
+  /* ring card */
+  .ringwrap{display:flex;align-items:center;gap:14px}
+  .ring{position:relative;width:78px;height:78px;flex:0 0 auto}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .rt{fill:none;stroke:var(--track);stroke-width:8}
+  .ring .rv{fill:none;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .6s ease,stroke .4s ease}
+  .ring .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:650}
+  .ringmeta{font-size:12px;color:var(--dim);line-height:1.5}
+  .ringmeta b{color:var(--txt);font-weight:600;font-size:13px}
+  /* net card */
+  .net{display:flex;flex-direction:column;gap:10px}
+  .net .nl{display:flex;align-items:center;gap:8px;font-size:14px}
+  .net .nl .a{font-size:13px;width:16px;text-align:center}
+  .net .nl b{font-weight:650}
+  .net .nl .down{color:var(--green)} .net .nl .up{color:#5fb0e8}
+  .net .nl small{color:var(--faint);font-size:11px;margin-left:auto}
+  /* stat tile */
+  .big{font-size:26px;font-weight:650;line-height:1.1}
+  .big small{font-size:13px;color:var(--faint);font-weight:500;margin-left:3px}
+  .substat{font-size:11.5px;color:var(--faint);margin-top:6px}
+  /* disk health */
+  .disks{display:flex;flex-wrap:wrap;gap:10px}
+  .disk{flex:1 1 120px;min-width:120px;background:var(--card2);border:1px solid var(--line);
+        border-radius:12px;padding:11px 13px}
+  .disk .dh{display:flex;align-items:center;gap:7px;font-size:13px;color:#cdd9e6;margin-bottom:7px}
+  .disk .dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+  .disk .dt{font-size:20px;font-weight:650}
+  .disk .ds{font-size:10.5px;color:var(--faint);margin-top:3px}
+  .statusword{text-transform:capitalize}
+  .foot{margin-top:24px;text-align:center;font-size:11.5px;color:var(--faint)}
   @media (max-width:560px){
-    .card{flex-direction:column}
-    .panel{padding-left:0; width:100%}
+    body{padding:14px}
+    .bezel{width:200px;height:200px} svg.gauge{width:180px;height:180px}
   }
 </style>
 </head>
 <body>
-  <div class="card">
-    <div class="dial-wrap">
+<div class="shell">
+  <header>
+    <div class="brand">
+      <span class="pulse" id="pulse"></span>
+      <h1 id="model">NAS</h1>
+      <span class="sub" id="hostsub">:8787</span>
+      <span class="demo-badge" id="demo">DEMO DATA</span>
+    </div>
+    <div class="chips">
+      <div class="chip"><span id="statusDot" class="pulse" style="animation:none"></span><span>Status <b id="statusTxt">—</b></span></div>
+      <div class="chip" id="uptimeChip" style="display:none">Uptime <b id="uptime">—</b></div>
+      <div class="chip">Updated <b id="updated">—</b></div>
+    </div>
+  </header>
+
+  <!-- THERMALS -->
+  <div class="sect"><div class="lbl">Thermals</div></div>
+  <div class="hero">
+    <div class="dialcard">
       <div class="bezel" id="bezel" title="tap to cycle">
         <svg class="gauge" viewBox="0 0 248 248" id="gauge">
           <circle class="gtrack" cx="124" cy="124" r="92"/>
-          <!-- zone arcs (drawn as background hints) -->
-          <path class="gzone" id="zoneGreen" opacity="0.28"/>
-          <path class="gzone" id="zoneAmber" opacity="0.32"/>
-          <path class="gzone" id="zoneRed"   opacity="0.34"/>
-          <circle cx="124" cy="124" r="86" fill="var(--dial-face)" stroke="var(--dial-face-line)" stroke-width="1"/>
-          <!-- progress -->
+          <path class="gzone" id="zG" opacity="0.26"/>
+          <path class="gzone" id="zA" opacity="0.30"/>
+          <path class="gzone" id="zR" opacity="0.32"/>
+          <circle cx="124" cy="124" r="86" fill="#070b11" stroke="#0d141d" stroke-width="1"/>
           <path class="gprog" id="prog"/>
           <circle id="progEnd" r="4" fill="#eafdf7" style="display:none"/>
-          <text class="gmodel" id="gModel" x="124" y="92"  text-anchor="middle">DS1525+</text>
-          <text class="gtemp"  id="gTemp"  x="124" y="138" text-anchor="middle">--°</text>
-          <text class="glabel" id="gLabel" x="124" y="162" text-anchor="middle">CPU</text>
+          <text class="gmodel" id="gModel" x="124" y="98"  text-anchor="middle">—</text>
+          <text class="gtemp"  id="gTemp"  x="124" y="140" text-anchor="middle">--°</text>
+          <text class="glabel" id="gLabel" x="124" y="164" text-anchor="middle">CPU</text>
         </svg>
       </div>
       <div class="legend">green &lt; 66°&nbsp;&nbsp;amber 66–81°&nbsp;&nbsp;red &gt; 81°</div>
     </div>
-
-    <div class="panel">
-      <div class="phead"><span class="dot" id="dot"></span><span class="t">Live readout</span></div>
-      <div class="psub" id="src">:8787/temps.json</div>
-      <div id="rows"></div>
-      <div class="foot">nas_monitoring — live CPU, system &amp; disk temps</div>
-    </div>
+    <div class="temps" id="temps"></div>
   </div>
 
+  <!-- SYSTEM -->
+  <div class="sect" id="sysSect" style="display:none"><div class="lbl">System</div></div>
+  <div class="grid" id="sysGrid"></div>
+
+  <!-- HEALTH -->
+  <div class="sect" id="healthSect"><div class="lbl">Health</div></div>
+  <div class="grid" id="healthGrid"></div>
+
+  <div class="foot">nas_monitoring · live · <span id="src">:8787/temps.json</span></div>
+</div>
+
 <script>
-// model name: temps.json "model" wins, then ?model= query param, then default
-const DEFAULT_MODEL = new URLSearchParams(location.search).get('model') || "NAS";
-const GREEN_MAX = 66, AMBER_MAX = 81;   // °C zone thresholds
-const SCALE_MAX = 95;                    // gauge full-scale (°C)
-const REFRESH_MS = 5000;
-const STALE_S = 90;                      // ts older than this -> stale dot
+/* ===== config ===== */
+const SCALE_MAX=95, T_GREEN=66, T_AMBER=81;     // temp zones (°C)
+const P_GREEN=70, P_AMBER=90;                    // percent zones (%)
+const REFRESH_MS=5000, STALE_S=90;
 
-// --- gauge geometry: 270° arc, gap at bottom (start 135°, sweep clockwise) ---
-const CX=124, CY=124, R=92, START=135, SWEEP=270;
-function polar(frac){ // frac 0..1 along the arc -> [x,y]
-  const a = (START + frac*SWEEP) * Math.PI/180;
-  return [CX + R*Math.cos(a), CY + R*Math.sin(a)];
+/* demo data so the page looks complete in local preview (no temps.json) */
+const DEMO={ts:Math.floor(Date.now()/1000),unit:"C",model:"DS1525+",uptime:1083600,
+  cpu:55,cpu_label:"Tctl",system:55,
+  disks:[{name:"sata1",temp:42,health:"ok"},{name:"sata2",temp:44,health:"ok"},{name:"sata3",temp:44,health:"warn"}],
+  load:{cpu_pct:14,mem_pct:41,mem_used_mb:6700,mem_total_mb:16384},
+  volumes:[{name:"volume1",used_pct:63,used_gb:5600,total_gb:8900,status:"normal"}],
+  raid:[{name:"Storage Pool 1",level:"SHR-1",status:"normal"}],
+  net:{rx_mbps:48.2,tx_mbps:6.4},
+  fans:[{name:"System",rpm:1180,status:"ok"}],
+  ups:{present:true,charge_pct:100,load_pct:18,runtime_s:3600,on_battery:false}};
+
+/* ===== color helpers ===== */
+const tColor=t=>t>T_AMBER?'var(--red)':t>T_GREEN?'var(--amber)':'var(--green)';
+const pColor=p=>p>P_AMBER?'var(--red)':p>P_GREEN?'var(--amber)':'var(--green)';
+const okColor=s=>({ok:'var(--green)',normal:'var(--green)',healthy:'var(--green)',
+                   warn:'var(--amber)',warning:'var(--amber)',degraded:'var(--amber)',
+                   crit:'var(--red)',critical:'var(--red)',failed:'var(--red)'}[String(s||'').toLowerCase()]||'var(--faint)');
+
+/* ===== gauge geometry (270° arc, gap at bottom) ===== */
+const CX=124,CY=124,R=92,START=135,SWEEP=270;
+const polar=f=>{const a=(START+f*SWEEP)*Math.PI/180;return [CX+R*Math.cos(a),CY+R*Math.sin(a)];};
+function arc(f0,f1){const[x0,y0]=polar(f0),[x1,y1]=polar(f1);const lg=(f1-f0)*SWEEP>180?1:0;
+  return `M ${x0.toFixed(1)} ${y0.toFixed(1)} A ${R} ${R} 0 ${lg} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`;}
+(function zones(){const g=T_GREEN/SCALE_MAX,a=T_AMBER/SCALE_MAX;
+  zG.setAttribute('d',arc(0,g));   zG.setAttribute('stroke','var(--green)');
+  zA.setAttribute('d',arc(g,a));   zA.setAttribute('stroke','var(--amber)');
+  zR.setAttribute('d',arc(a,1));   zR.setAttribute('stroke','var(--red)');})();
+
+/* ===== ring (donut) helper ===== */
+function ringSVG(){const r=31,c=2*Math.PI*r;
+  return `<svg width="78" height="78" viewBox="0 0 78 78">
+    <circle class="rt" cx="39" cy="39" r="${r}"/>
+    <circle class="rv" cx="39" cy="39" r="${r}" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${c.toFixed(1)}"/>
+  </svg>`;}
+function setRing(el,pct,color){const r=31,c=2*Math.PI*r;const v=el.querySelector('.rv');
+  v.style.strokeDashoffset=(c*(1-Math.max(0,Math.min(100,pct))/100)).toFixed(1);
+  v.style.stroke=color; el.querySelector('.pct').textContent=Math.round(pct)+'%';
+  el.querySelector('.pct').style.color=color;}
+
+/* ===== state ===== */
+let temps=[], sel=0;
+
+function renderDial(){
+  if(!temps.length)return;
+  const m=temps[sel%temps.length];
+  const f=Math.max(0,Math.min(1,m.temp/SCALE_MAX));
+  prog.setAttribute('d', f<=0.001?'':arc(0,f));
+  prog.setAttribute('stroke',tColor(m.temp));
+  const[ex,ey]=polar(f); progEnd.setAttribute('cx',ex.toFixed(1)); progEnd.setAttribute('cy',ey.toFixed(1));
+  progEnd.style.display=f>0.01?'':'none';
+  gTemp.textContent=(m.temp==null?'--':m.temp)+'°';
+  gLabel.textContent=m.tag?`${m.name} · ${m.tag}`:m.name;
 }
-function arc(f0,f1){
-  const [x0,y0]=polar(f0), [x1,y1]=polar(f1);
-  const large = (f1-f0)*SWEEP > 180 ? 1 : 0;
-  return `M ${x0.toFixed(1)} ${y0.toFixed(1)} A ${R} ${R} 0 ${large} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`;
-}
-function colorFor(t){ return t > AMBER_MAX ? 'var(--red)' : t > GREEN_MAX ? 'var(--amber)' : 'var(--green)'; }
-function barColor(t){ return t > AMBER_MAX ? 'var(--red)' : t > GREEN_MAX ? 'var(--amber)' : 'var(--green)'; }
-
-// draw static zone arcs once
-(function zones(){
-  const g=GREEN_MAX/SCALE_MAX, a=AMBER_MAX/SCALE_MAX;
-  document.getElementById('zoneGreen').setAttribute('d', arc(0, g));
-  document.getElementById('zoneGreen').setAttribute('stroke','var(--green)');
-  document.getElementById('zoneAmber').setAttribute('d', arc(g, a));
-  document.getElementById('zoneAmber').setAttribute('stroke','var(--amber)');
-  document.getElementById('zoneRed').setAttribute('d', arc(a, 1));
-  document.getElementById('zoneRed').setAttribute('stroke','var(--red)');
-  document.getElementById('gModel').textContent = DEFAULT_MODEL;
-})();
-
-let metrics = [];   // [{key,name,tag,temp}]
-let sel = 0;
-
-function renderGauge(){
-  if(!metrics.length) return;
-  const m = metrics[sel % metrics.length];
-  const frac = Math.max(0, Math.min(1, m.temp / SCALE_MAX));
-  const prog = document.getElementById('prog');
-  if(frac <= 0.001){ prog.setAttribute('d',''); }
-  else { prog.setAttribute('d', arc(0, frac)); }
-  prog.setAttribute('stroke', colorFor(m.temp));
-  const [ex,ey]=polar(frac);
-  const end=document.getElementById('progEnd');
-  end.setAttribute('cx',ex.toFixed(1)); end.setAttribute('cy',ey.toFixed(1));
-  end.style.display = frac>0.01 ? '' : 'none';
-  document.getElementById('gTemp').textContent = (m.temp==null?'--':m.temp)+'°';
-  document.getElementById('gLabel').textContent = m.tag ? (m.name+' · '+m.tag) : m.name;
-}
-
-function renderRows(){
-  const host=document.getElementById('rows');
-  host.innerHTML='';
-  metrics.forEach((m,i)=>{
-    const pct = Math.max(0,Math.min(100, m.temp/SCALE_MAX*100));
-    const row=document.createElement('div');
-    row.className='row'+(i===sel?' sel':'');
-    row.innerHTML=
-      `<div class="line"><span class="name">${m.name}`+
-      `${m.tag?`<span class="tag">${m.tag}</span>`:''}</span>`+
-      `<span class="val">${m.temp==null?'--':m.temp}°</span></div>`+
-      `<div class="bar"><i style="width:${pct}%;background:${barColor(m.temp)}"></i></div>`;
-    row.onclick=()=>{ sel=i; renderGauge(); renderRows(); };
-    host.appendChild(row);
+function renderTemps(){
+  const host=document.getElementById('temps'); host.innerHTML='';
+  temps.forEach((m,i)=>{
+    const pct=Math.max(0,Math.min(100,m.temp/SCALE_MAX*100));
+    const d=document.createElement('div'); d.className='trow'+(i===sel?' sel':'');
+    d.innerHTML=`<div class="ln"><span class="nm">${m.name}${m.tag?`<span class="tag">${m.tag}</span>`:''}</span>`+
+      `<span class="vv">${m.temp==null?'--':m.temp}°</span></div>`+
+      `<div class="bar"><i style="width:${pct}%;background:${tColor(m.temp)}"></i></div>`;
+    d.onclick=()=>{sel=i;renderDial();renderTemps();};
+    host.appendChild(d);
   });
+}
+
+/* card factories */
+function ringCard(title,unit,pct,meta){
+  const el=document.createElement('div'); el.className='card';
+  el.innerHTML=`<div class="ct"><span>${title}</span><span class="u">${unit||''}</span></div>
+    <div class="ringwrap"><div class="ring">${ringSVG()}<div class="pct">0%</div></div>
+    <div class="ringmeta">${meta||''}</div></div>`;
+  setRing(el.querySelector('.ring'),pct,pColor(pct));
+  return el;
+}
+function statTile(title,bigHTML,sub){
+  const el=document.createElement('div'); el.className='card';
+  el.innerHTML=`<div class="ct"><span>${title}</span></div><div class="big">${bigHTML}</div>
+    ${sub?`<div class="substat">${sub}</div>`:''}`;
+  return el;
+}
+
+function renderSystem(d){
+  const grid=document.getElementById('sysGrid'); grid.innerHTML='';
+  let any=false;
+  if(Array.isArray(d.volumes)) d.volumes.forEach(v=>{any=true;
+    grid.appendChild(ringCard(v.name||'Volume','capacity',v.used_pct,
+      `<b>${v.used_gb!=null?(v.used_gb/1000).toFixed(1)+' / '+(v.total_gb/1000).toFixed(1)+' TB':''}</b><br>${v.total_gb?((v.total_gb-v.used_gb)/1000).toFixed(1)+' TB free':''}`));});
+  if(d.load){
+    if(d.load.cpu_pct!=null){any=true; grid.appendChild(ringCard('CPU load','utilisation',d.load.cpu_pct,'<b>busy</b><br>processing'));}
+    if(d.load.mem_pct!=null){any=true; grid.appendChild(ringCard('Memory','RAM',d.load.mem_pct,
+      `<b>${d.load.mem_used_mb!=null?(d.load.mem_used_mb/1024).toFixed(1)+' / '+(d.load.mem_total_mb/1024).toFixed(1)+' GB':''}</b>`));}
+  }
+  if(d.net){any=true;
+    const el=document.createElement('div'); el.className='card';
+    el.innerHTML=`<div class="ct"><span>Network</span><span class="u">Mb/s</span></div>
+      <div class="net">
+        <div class="nl"><span class="a down">▼</span><b class="down">${(d.net.rx_mbps??0).toFixed(1)}</b><small>down</small></div>
+        <div class="nl"><span class="a up">▲</span><b class="up">${(d.net.tx_mbps??0).toFixed(1)}</b><small>up</small></div>
+      </div>`;
+    grid.appendChild(el);
+  }
+  document.getElementById('sysSect').style.display=any?'':'none';
+}
+
+function renderHealth(d){
+  const grid=document.getElementById('healthGrid'); grid.innerHTML='';
+  // disk health card (always — we at least have temps)
+  if(Array.isArray(d.disks)&&d.disks.length){
+    const card=document.createElement('div'); card.className='card'; card.style.gridColumn='1 / -1';
+    let inner=`<div class="ct"><span>Disks</span><span class="u">SMART · temp</span></div><div class="disks">`;
+    d.disks.forEach(x=>{const c=okColor(x.health);
+      inner+=`<div class="disk"><div class="dh"><span class="dot" style="background:${c}"></span>${x.name}</div>`+
+        `<div class="dt" style="color:${x.temp!=null?tColor(x.temp):'var(--faint)'}">${x.temp!=null?x.temp+'°':'--'}</div>`+
+        `<div class="ds statusword">${x.health?x.health:'temp only'}</div></div>`;});
+    inner+=`</div>`; card.innerHTML=inner; grid.appendChild(card);
+  }
+  if(Array.isArray(d.raid)) d.raid.forEach(p=>
+    grid.appendChild(statTile(p.name||'Storage Pool',
+      `<span style="color:${okColor(p.status)}">●</span> <span class="statusword" style="font-size:18px">${p.status||'—'}</span>`,
+      p.level||'')));
+  if(d.ups&&d.ups.present)
+    grid.appendChild(statTile('UPS',`${d.ups.charge_pct??'--'}<small>% batt</small>`,
+      `${d.ups.on_battery?'⚡ on battery':'on mains'} · load ${d.ups.load_pct??'--'}% · ~${d.ups.runtime_s!=null?Math.round(d.ups.runtime_s/60)+' min':'--'} left`));
+  if(Array.isArray(d.fans)) d.fans.forEach(f=>
+    grid.appendChild(statTile(`${f.name||'Fan'} fan`,`${f.rpm??'--'}<small>rpm</small>`,
+      `<span style="color:${okColor(f.status)}">●</span> ${f.status||''}`)));
+}
+
+/* overall status from the pieces we have */
+function overall(d){
+  let worst=0; const bump=n=>{if(n>worst)worst=n;};
+  (d.disks||[]).forEach(x=>{const h=String(x.health||'').toLowerCase();
+    if(['warn','warning','degraded'].includes(h))bump(1); if(['crit','critical','failed'].includes(h))bump(2);
+    if(x.temp>T_AMBER)bump(2); else if(x.temp>T_GREEN)bump(1);});
+  if(d.cpu>T_AMBER||d.system>T_AMBER)bump(2); else if(d.cpu>T_GREEN||d.system>T_GREEN)bump(1);
+  (d.volumes||[]).forEach(v=>{if(v.used_pct>P_AMBER)bump(2); else if(v.used_pct>P_GREEN)bump(1);});
+  (d.raid||[]).forEach(p=>{const s=String(p.status||'').toLowerCase();
+    if(s.includes('degrad')||s.includes('rebuild'))bump(1); if(s.includes('crit')||s.includes('fail'))bump(2);});
+  if(d.ups&&d.ups.on_battery)bump(1);
+  return ['healthy','warning','critical'][worst];
+}
+
+function fmtUptime(s){if(s==null)return null;const d=Math.floor(s/86400),h=Math.floor(s%86400/3600);
+  return d>0?`${d}d ${h}h`:`${h}h ${Math.floor(s%3600/60)}m`;}
+function ago(ts){const s=Math.max(0,Math.round(Date.now()/1000-ts));return s<60?s+'s ago':Math.round(s/60)+'m ago';}
+
+function render(d,isDemo){
+  document.getElementById('demo').style.display=isDemo?'':'none';
+  if(d.model){document.getElementById('model').textContent=d.model; gModel.textContent=d.model;}
+  temps=[{name:'CPU',tag:d.cpu_label||'',temp:d.cpu},{name:'System',tag:'',temp:d.system},
+    ...(d.disks||[]).map((x,i)=>({name:'Disk '+(i+1),tag:x.name,temp:x.temp}))].filter(m=>m.temp!=null);
+  if(sel>=temps.length)sel=0;
+  renderDial(); renderTemps(); renderSystem(d); renderHealth(d);
+
+  // header
+  const st=overall(d), stale=d.ts&&(Date.now()/1000-d.ts)>STALE_S;
+  const dot=document.getElementById('statusDot'), pulse=document.getElementById('pulse');
+  const cls=stale?'stale':st==='critical'?'crit':st==='warning'?'warn':'';
+  dot.className='pulse '+cls; pulse.className='pulse '+cls;
+  document.getElementById('statusTxt').textContent=stale?'stale':st;
+  document.getElementById('statusTxt').style.color=stale?'var(--faint)':okColor(st==='healthy'?'ok':st);
+  const up=fmtUptime(d.uptime);
+  if(up){document.getElementById('uptimeChip').style.display=''; document.getElementById('uptime').textContent=up;}
+  document.getElementById('updated').textContent=d.ts?ago(d.ts):'—';
 }
 
 async function tick(){
   try{
-    const r = await fetch('temps.json', {cache:'no-store'});
-    const d = await r.json();
-    if(d.model) document.getElementById('gModel').textContent = d.model;
-    metrics = [
-      {key:'cpu', name:'CPU', tag:d.cpu_label||'', temp:d.cpu},
-      {key:'system', name:'System', tag:'', temp:d.system},
-      ...(d.disks||[]).map((x,i)=>({key:'d'+i, name:'Disk '+(i+1), tag:x.name, temp:x.temp})),
-    ].filter(m=>m.temp!=null);
-    if(sel >= metrics.length) sel=0;
-    const stale = d.ts && (Date.now()/1000 - d.ts) > STALE_S;
-    document.getElementById('dot').className = 'dot'+(stale?' stale':'');
-    document.getElementById('src').textContent =
-      ':8787/temps.json' + (d.ts ? '  ·  '+timeAgo(d.ts) : '');
-    renderGauge(); renderRows();
+    const r=await fetch('temps.json',{cache:'no-store'}); if(!r.ok)throw 0;
+    render(await r.json(),false);
+    document.getElementById('src').textContent=':8787/temps.json';
   }catch(e){
-    document.getElementById('dot').className='dot stale';
-    document.getElementById('src').textContent='temps.json unreachable';
+    render(DEMO,true);
+    document.getElementById('src').textContent='temps.json unreachable — showing demo';
   }
 }
-function timeAgo(ts){
-  const s=Math.max(0,Math.round(Date.now()/1000-ts));
-  return s<60? s+'s ago' : Math.round(s/60)+'m ago';
-}
-
-document.getElementById('bezel').onclick=()=>{
-  if(!metrics.length) return;
-  sel=(sel+1)%metrics.length; renderGauge(); renderRows();
-};
-
-tick();
-setInterval(tick, REFRESH_MS);
+document.getElementById('bezel').onclick=()=>{if(temps.length){sel=(sel+1)%temps.length;renderDial();renderTemps();}};
+tick(); setInterval(tick,REFRESH_MS);
 </script>
 </body>
 </html>

@@ -32,18 +32,40 @@
 
 约定：任何温度源不可用时该值为 `null` —— 渲染前判空，别假设一定有数。
 
+## 扩展契约（进行中，**向后兼容**）
+
+温度之外还会逐步加入更多 NAS 指标（卷容量 / 磁盘 SMART 健康 / CPU 负载 / 内存 / 网络 / RAID / 风扇 / UPS）。原则：**上面的字段永不变形**，新指标一律作为**可选新字段**追加；消费方判存在再渲染（缺失 = 该源未接入，不是错误）。`web/index.html` 已按此实现（有则亮、无则隐藏）。
+
+```jsonc
+{
+  // —— 现有字段不动（见上）——
+  "disks":[{"name":"sata1","temp":42,"health":"ok"}],   // 盘对象新增可选 health: ok|warn|crit（由 SMART 属性 5/197/198 推断）
+
+  // —— 以下全部可选 ——
+  "uptime": 1083600,                                              // 秒
+  "load":   {"cpu_pct":14,"mem_pct":41,"mem_used_mb":6700,"mem_total_mb":16384},
+  "volumes":[{"name":"volume1","used_pct":63,"used_gb":5600,"total_gb":8900,"status":"normal"}],
+  "raid":   [{"name":"Storage Pool 1","level":"SHR-1","status":"normal"}],  // status: normal|degraded|rebuilding|critical
+  "net":    {"rx_mbps":48.2,"tx_mbps":6.4},
+  "fans":   [{"name":"System","rpm":1180,"status":"ok"}],
+  "ups":    {"present":true,"charge_pct":100,"load_pct":18,"runtime_s":3600,"on_battery":false}
+}
+```
+
+百分比类指标（容量 / CPU 负载 / 内存）配色阈值：`green <70%`、`amber 70–90%`、`red >90%`。状态类字段（health / RAID status / fan status）按 `ok|normal|healthy`→绿、`warn|warning|degraded`→琥珀、`crit|critical|failed`→红 映射。数据来源主要靠群晖内置 SNMP（OID 树 `1.3.6.1.4.1.6574.*`）+ 现成 `smartctl`，详见 [TODO.md](TODO.md)「更多数据源」。
+
 ## 把它当 dial 设备的一个「数据源模块」
 
 dial 设备的设想是「一份 JSON 契约 + 旋钮翻屏切换多个 reading」（见 [TODO.md](TODO.md) 平台化一节）。本模块就是其中一个 provider。接入时建议这样抽象：
 
 - 把每个温度规整成一个统一 reading：`{ key, label, tag?, value, unit, zone }`
   - `zone` 按阈值算：`green <66°`，`amber 66–81°`，`red >81°`（与表盘 `SCALE_MAX=95` 一致）。
-- CPU→System→各 disk 依次成为可翻屏的条目；`web/index.html` 里已实现这套（`metrics[]` 数组 + 点表盘 `sel=(sel+1)%len` 循环），**旋钮只需映射到这个切换**，是为 M5Dial 预留的。
-- 颜色/阈值/全量程都集中在 `web/index.html` 顶部常量（`GREEN_MAX/AMBER_MAX/SCALE_MAX`），复用时照搬即可。
+- CPU→System→各 disk 依次成为可翻屏的条目；`web/index.html` 里已实现这套（`temps[]` 数组 + 点表盘 `sel=(sel+1)%len` 循环），**旋钮只需映射到这个切换**，是为 M5Dial 预留的。
+- 颜色/阈值/全量程都集中在 `web/index.html` 顶部常量（温度 `T_GREEN/T_AMBER/SCALE_MAX`、百分比 `P_GREEN/P_AMBER`），复用时照搬即可。
 
 ### 复用表盘的两条路
 1. **直接嵌**：把 `http://<nas>:8787/` 用 iframe 放进 deskstage 面板；支持 `?model=...` 覆盖中央型号。最省事。
-2. **吸收渲染逻辑**：`web/index.html` 是单文件、无构建、无外部依赖（纯原生 SVG + JS）。要做成 deskstage 的组件，直接搬里面的 gauge 几何（`polar()/arc()`）、`metrics[]` 构造、`colorFor()` 即可。
+2. **吸收渲染逻辑**：`web/index.html` 是单文件、无构建、无外部依赖（纯原生 SVG + JS）。要做成 deskstage 的组件，直接搬里面的 gauge 几何（`polar()/arc()`）、圆环 `ringSVG()/setRing()`、配色 `tColor()/pColor()/okColor()` 即可。
 
 ## 部署 / 运行（本模块已在线，通常无需你动）
 

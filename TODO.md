@@ -17,7 +17,10 @@
 - [ ] 旋钮翻屏 / 选数据源。
 
 ## 更多数据源（同一份 JSON 契约扩展）
-- [ ] 硬盘读写吞吐 / IO、网络收发、CPU/内存负载、风扇转速、卷容量、UPS 状态。
+- 前端**已就绪**：`web/index.html` 已能渲染容量 / SMART 健康 / CPU 负载 / 内存 / 网络 / RAID / 风扇 / UPS（有字段就亮）。扩展契约见 [INTEGRATION.md](INTEGRATION.md)「扩展契约」。**剩下是后端采集**：
+- [ ] DSM 开 SNMP（控制面板 → 终端机和 SNMP），设只读 community。
+- [ ] `collect_temps.py` 加 SMART 健康：复用现成 `smartctl -A -d sat` 输出，多解析属性 5/197/198 → 每盘 `health: ok|warn|crit`（零额外命令）。
+- [ ] `collect_temps.py` 加 SNMP `snmpwalk 1.3.6.1.4.1.6574`：卷容量(`…102`)、CPU/内存、RAID(`…3`)、UPS(`…5`)、风扇 → 填扩展字段。
 - [ ] 每个源做成「标准 reading」适配器，旋钮翻屏切换，新增源不用重烧固件。
 
 ## 平台化（远期，见对话里的「合璧」设想）
