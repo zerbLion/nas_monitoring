@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🌡️ nas_monitoring
+# 🌡️ nas-monitoring
 
 [English](README.md) · **中文**
 
@@ -30,7 +30,7 @@
 
 结果你只能把三个工具拼起来，还得**祈祷读数是对的**。
 
-**`nas_monitoring` 给每个值挑对来源、合并成一个接口，并且把每一项都拿独立来源交叉核对过**——所以你确信它是对的，而 ESP32 只需拉一份整洁的 JSON。
+**`nas-monitoring` 给每个值挑对来源、合并成一个接口，并且把每一项都拿独立来源交叉核对过**——所以你确信它是对的，而 ESP32 只需拉一份整洁的 JSON。
 
 ## ✨ 你能拿到什么
 
@@ -70,8 +70,8 @@ GET http://<你的NAS>:8787/temps.json
 
 ```bash
 # 在 NAS 上（路径默认用标准的 /volume1/docker 共享文件夹）
-git clone https://github.com/ZerbLion/nas_monitoring.git
-cd nas_monitoring
+git clone https://github.com/ZerbLion/nas-monitoring.git
+cd nas-monitoring
 
 # 1) Glances —— 必须 pid:host，否则传感器返回空
 sudo docker compose -f glances/docker-compose.yml up -d

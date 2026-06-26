@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🌡️ nas_monitoring
+# 🌡️ nas-monitoring
 
 **English** · [中文](README.zh-CN.md)
 
@@ -31,7 +31,7 @@ Getting temperatures off an **AMD Synology** (DS925+, DS1525+, anything Ryzen) i
 
 So you end up gluing three different tools together and *hoping* the numbers are right.
 
-**`nas_monitoring` picks the correct source for each value, merges them into one endpoint, and cross‑checks every reading against an independent source** — so you actually know it's correct, and your ESP32 just pulls one tidy JSON.
+**`nas-monitoring` picks the correct source for each value, merges them into one endpoint, and cross‑checks every reading against an independent source** — so you actually know it's correct, and your ESP32 just pulls one tidy JSON.
 
 ## ✨ What you get
 
@@ -71,8 +71,8 @@ Two sources are split out on purpose: Glances for CPU (clean), `smartctl` for di
 
 ```bash
 # On the NAS (paths assume the standard /volume1/docker share)
-git clone https://github.com/ZerbLion/nas_monitoring.git
-cd nas_monitoring
+git clone https://github.com/ZerbLion/nas-monitoring.git
+cd nas-monitoring
 
 # 1) Glances — MUST run with pid:host or sensors come back empty
 sudo docker compose -f glances/docker-compose.yml up -d
