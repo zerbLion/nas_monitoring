@@ -15,7 +15,7 @@ CPU, system board, and every disk — ready for an ESP32 / M5Dial desk display.*
 
 <br/>
 
-![M5Dial showing live NAS temps](docs/m5dial-mockup.svg)
+![Live NAS dashboard preview](docs/dashboard-preview.png)
 
 </div>
 

@@ -14,7 +14,7 @@
 
 <br/>
 
-![M5Dial 显示实时 NAS 温度](docs/m5dial-mockup.svg)
+![NAS 实时表盘预览](docs/dashboard-preview.png)
 
 </div>
 
